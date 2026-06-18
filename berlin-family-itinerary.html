@@ -274,6 +274,42 @@
   .area-badge.stay-2 { background: #E7F1EF; color: var(--teal-deep); }
   .area-badge.transition { background: #FCF3D9; color: var(--yellow-deep); }
 
+  .neighborhood-hero {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    border-radius: 12px;
+    display: block;
+    margin-bottom: 18px;
+    background: var(--line);
+  }
+  .neighborhood-hero-split {
+    width: 100%;
+    height: 180px;
+    border-radius: 12px;
+    overflow: hidden;
+    display: flex;
+    margin-bottom: 18px;
+    position: relative;
+  }
+  .neighborhood-hero-split img {
+    width: 50%;
+    height: 100%;
+    object-fit: cover;
+    flex: 0 0 50%;
+  }
+  .neighborhood-hero-split::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    transform: translateX(-50%);
+    background: var(--surface);
+    box-shadow: 0 0 8px rgba(0,0,0,0.25);
+  }
+
   .empty-state {
     border: 1px dashed var(--line);
     border-radius: 12px;
@@ -682,6 +718,11 @@ if (FIREBASE_CONFIGURED) {
   }
   function dayNum(dateStr) { return new Date(dateStr + "T12:00:00").getDate(); }
 
+  var NEIGHBORHOOD_IMGS = {
+    1: { src: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/KaDeWE_Wittenbergplatz.jpg&width=800", pos: "center center" },
+    2: { src: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/2023_Berliner_Dom_-_Westfassade_--_04.jpg&width=800", pos: "center center" }
+  };
+
   /* ---------------- Activity library ---------------- */
   var ACTIVITIES = [
     { id: "k1", category: "kids", stay: 1, area: "Schöneberg", title: "Volkspark Wilmersdorf", blurb: "Large green park with a pond — perfect for burning off toddler energy, just a short walk away.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/VolksparkWilmersdorf1.JPG&width=600" },
@@ -913,6 +954,14 @@ if (FIREBASE_CONFIGURED) {
     html += '<div class="day-head"><h2>' + fullDateLabel(dt) + "</h2>";
     html += '<span class="day-counter">Day ' + idx + " of " + DAYS.length + "</span></div>";
     html += '<span class="area-badge ' + (stay === "transition" ? "transition" : "stay-" + stay) + '">' + getAreaLabel(dt) + "</span>";
+    if (stay === "transition") {
+      html += '<div class="neighborhood-hero-split">';
+      html += '<img src="' + NEIGHBORHOOD_IMGS[1].src + '" alt="Schöneberg" loading="lazy" style="object-position:' + NEIGHBORHOOD_IMGS[1].pos + '">';
+      html += '<img src="' + NEIGHBORHOOD_IMGS[2].src + '" alt="Mitte / Prenzlauer Berg" loading="lazy" style="object-position:' + NEIGHBORHOOD_IMGS[2].pos + '">';
+      html += '</div>';
+    } else if (NEIGHBORHOOD_IMGS[stay]) {
+      html += '<img class="neighborhood-hero" src="' + NEIGHBORHOOD_IMGS[stay].src + '" alt="' + getAreaLabel(dt) + '" loading="lazy" style="object-position:' + NEIGHBORHOOD_IMGS[stay].pos + '">';
+    }
 
     if (items.length === 0) {
       html += '<div class="empty-state">No plans yet for this day. Tap the list below to add something, or jot down your own.</div>';
