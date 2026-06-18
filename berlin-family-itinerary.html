@@ -101,10 +101,69 @@
   .sync-badge.local { color: var(--yellow-deep); border-color: #F0DFA6; background: #FCF6E0; }
 
   /* ---------- Transit line strip (signature element) ---------- */
+  .line-strip-wrapper {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+  }
+  .line-strip-wrapper::before,
+  .line-strip-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 40px;
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.2s;
+  }
+  .line-strip-wrapper::before {
+    left: 0;
+    background: linear-gradient(to right, var(--surface), transparent);
+    opacity: 0;
+  }
+  .line-strip-wrapper::after {
+    right: 0;
+    background: linear-gradient(to left, var(--surface), transparent);
+    opacity: 1;
+  }
+  .line-strip-wrapper.can-scroll-left::before { opacity: 1; }
+  .line-strip-wrapper.at-end::after { opacity: 0; }
+
+  .strip-scroll-btn {
+    display: none;
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 2;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    color: var(--ink);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+    transition: opacity 0.2s;
+  }
+  .strip-scroll-btn:hover { background: var(--cream); }
+  .strip-scroll-btn.left { left: 4px; }
+  .strip-scroll-btn.right { right: 4px; }
+  @media (hover: hover) {
+    .strip-scroll-btn { display: flex; }
+    .strip-scroll-btn.left { opacity: 0; pointer-events: none; }
+    .strip-scroll-btn.right { opacity: 1; }
+    .line-strip-wrapper.can-scroll-left .strip-scroll-btn.left { opacity: 1; pointer-events: auto; }
+    .line-strip-wrapper.at-end .strip-scroll-btn.right { opacity: 0; pointer-events: none; }
+  }
+
   .line-strip {
     padding: 18px 0 14px;
-    border-bottom: 1px solid var(--line);
-    background: var(--surface);
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
@@ -443,9 +502,26 @@
     align-items: flex-start;
   }
   .lib-item .item-tag { width: 4px; flex: 0 0 4px; }
+  .lib-item-thumb {
+    width: 56px;
+    height: 56px;
+    flex: 0 0 56px;
+    border-radius: 8px;
+    object-fit: cover;
+    background: var(--line);
+  }
   .lib-item-body { flex: 1; min-width: 0; }
   .lib-item-title { font-weight: 600; font-size: 14px; margin: 0 0 3px; }
   .lib-item-blurb { font-size: 12.5px; color: var(--muted); margin: 0; }
+  .item-card-img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    display: block;
+    background: var(--line);
+  }
   .lib-added-badge {
     font-size: 10.5px;
     font-family: var(--font-mono);
@@ -504,11 +580,15 @@
     <div class="sync-badge" id="syncBadge"><span class="dot"></span><span id="syncBadgeText">Starting up…</span></div>
   </header>
 
-  <nav class="line-strip" id="lineStrip" aria-label="Trip days">
-    <div class="line-track" id="lineTrack">
-      <div class="line-rail" id="lineRail"></div>
-    </div>
-  </nav>
+  <div class="line-strip-wrapper" id="lineStripWrapper">
+    <button class="strip-scroll-btn left" id="stripScrollLeft" aria-label="Scroll days left">&#8249;</button>
+    <nav class="line-strip" id="lineStrip" aria-label="Trip days">
+      <div class="line-track" id="lineTrack">
+        <div class="line-rail" id="lineRail"></div>
+      </div>
+    </nav>
+    <button class="strip-scroll-btn right" id="stripScrollRight" aria-label="Scroll days right">&#8250;</button>
+  </div>
 
   <main class="day-panel" id="dayPanel"></main>
 
@@ -604,28 +684,28 @@ if (FIREBASE_CONFIGURED) {
 
   /* ---------------- Activity library ---------------- */
   var ACTIVITIES = [
-    { id: "k1", category: "kids", stay: 1, area: "Schöneberg", title: "Volkspark Wilmersdorf", blurb: "Large green park with a pond — perfect for burning off toddler energy, just a short walk away." },
-    { id: "k2", category: "kids", stay: 1, area: "Schöneberg", title: "Legoland Discovery Centre", blurb: "Indoor Lego world at Potsdamer Platz, about 10 minutes away. A hit for both kids." },
-    { id: "k3", category: "kids", stay: 1, area: "Schöneberg", title: "Tempodrom Circus Shows", blurb: "Check their summer family programming for circus arts shows." },
-    { id: "k4", category: "kids", stay: 1, area: "Schöneberg", title: "Kindl-Zentrum für zeitgenössische Kunst", blurb: "Interactive children's programming on weekends." },
+    { id: "k1", category: "kids", stay: 1, area: "Schöneberg", title: "Volkspark Wilmersdorf", blurb: "Large green park with a pond — perfect for burning off toddler energy, just a short walk away.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/VolksparkWilmersdorf1.JPG&width=600" },
+    { id: "k2", category: "kids", stay: 1, area: "Schöneberg", title: "Legoland Discovery Centre", blurb: "Indoor Lego world at Potsdamer Platz, about 10 minutes away. A hit for both kids.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Legoland_Berlin_-_panoramio_(1).jpg&width=600" },
+    { id: "k3", category: "kids", stay: 1, area: "Schöneberg", title: "Tempodrom Circus Shows", blurb: "Check their summer family programming for circus arts shows.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Tempodrom.jpg&width=600" },
+    { id: "k4", category: "kids", stay: 1, area: "Schöneberg", title: "Kindl-Zentrum für zeitgenössische Kunst", blurb: "Interactive children's programming on weekends.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Kindl_-_Zentrum_f%C3%BCr_zeitgen%C3%B6ssische_Kunst-1395.jpg&width=600" },
 
-    { id: "k5", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Mauerpark", blurb: "Giant flea market on Sundays plus a massive playground — gravel hills and climbing frames for the 6-year-old, open space for the toddler." },
-    { id: "k6", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Volkspark Friedrichshain", blurb: "The fairy-tale fountain (Märchenbrunnen) kids adore, plus a splash area in summer." },
-    { id: "k7", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Naturkundemuseum", blurb: "The biggest dinosaur skeleton in Europe — a sure hit, and manageable for toddlers too." },
-    { id: "k8", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Kinderbauernhof am Mauerpark", blurb: "Free, hands-on city farm with animals, right in the middle of the city." },
-    { id: "k9", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "FEZ Wuhlheide", blurb: "Berlin's largest children's leisure centre — pools, adventure playground, mini train. Worth the trip out." },
+    { id: "k5", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Mauerpark", blurb: "Giant flea market on Sundays plus a massive playground — gravel hills and climbing frames for the 6-year-old, open space for the toddler.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Mauerpark_1979.jpg&width=600" },
+    { id: "k6", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Volkspark Friedrichshain", blurb: "The fairy-tale fountain (Märchenbrunnen) kids adore, plus a splash area in summer.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Berlin_M%C3%A4rchenbrunnen_asv2023-06_img1.jpg&width=600" },
+    { id: "k7", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Naturkundemuseum", blurb: "The biggest dinosaur skeleton in Europe — a sure hit, and manageable for toddlers too.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Berlin,_Mitte,_Invalidenstrasse_43,_Museum_f%C3%BCr_Naturkunde.jpg&width=600" },
+    { id: "k8", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Kinderbauernhof am Mauerpark", blurb: "Free, hands-on city farm with animals, right in the middle of the city.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Kinderbauernhof_am_Mauerplatz_Adalbertstra%C3%9Fe.jpg&width=600" },
+    { id: "k9", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "FEZ Wuhlheide", blurb: "Berlin's largest children's leisure centre — pools, adventure playground, mini train. Worth the trip out.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/FEZ_Haupteingang_-_panoramio.jpg&width=600" },
 
-    { id: "f1", category: "family", stay: 1, area: "Schöneberg", title: "Tiergarten", blurb: "Berlin's central park — great for cycling and picnics, plenty of room for the boys to run." },
-    { id: "f2", category: "family", stay: 1, area: "Schöneberg", title: "Berlin Zoo & Aquarium", blurb: "Right next to Tiergarten, one of the world's best zoos. The panda enclosure is a highlight." },
-    { id: "f3", category: "family", stay: 1, area: "Schöneberg", title: "Potsdamer Platz", blurb: "Easy stroll with accessible cafés, the Sony Center atrium, and street performances in summer." },
-    { id: "f4", category: "family", stay: 1, area: "Schöneberg", title: "Tempelhof Feld", blurb: "The old airport turned public park — cycle, kite, skateboard and picnic on the runways. Free and totally unique." },
+    { id: "f1", category: "family", stay: 1, area: "Schöneberg", title: "Tiergarten", blurb: "Berlin's central park — great for cycling and picnics, plenty of room for the boys to run.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Berlin_Tiergarten_Siegess%C3%A4ule_Luftansicht.jpg&width=600" },
+    { id: "f2", category: "family", stay: 1, area: "Schöneberg", title: "Berlin Zoo & Aquarium", blurb: "Right next to Tiergarten, one of the world's best zoos. The panda enclosure is a highlight.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Berlin_Elefantentor_09-2017.jpg&width=600" },
+    { id: "f3", category: "family", stay: 1, area: "Schöneberg", title: "Potsdamer Platz", blurb: "Easy stroll with accessible cafés, the Sony Center atrium, and street performances in summer.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/SonyCenterAtNight.jpg&width=600" },
+    { id: "f4", category: "family", stay: 1, area: "Schöneberg", title: "Tempelhof Feld", blurb: "The old airport turned public park — cycle, kite, skateboard and picnic on the runways. Free and totally unique.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Berlin_-_Flughafen_Tempelhof_-_2016.jpg&width=600" },
 
-    { id: "f5", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Berliner Dom & Museum Island", blurb: "The dome climb is manageable with a 6-year-old; lovely grounds by the Spree. The Pergamon mosaic gallery is nearby too." },
-    { id: "f6", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Boat Tour on the Spree", blurb: "A 1-hour city boat tour — kids can move around, and you cover a lot of the city comfortably." },
-    { id: "f7", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "East Side Gallery", blurb: "A 1.3km walk along the Wall the kids can handle, with great photos and easy history at a 6-year-old level." },
-    { id: "f8", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Prenzlauer Berg Neighborhood", blurb: "Playgrounds on almost every block, great bakeries, and the Kulturbrauerei with regular events." },
-    { id: "f9", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Treptower Park & Soviet Memorial", blurb: "A spacious riverside park with a memorial that's visually striking even for young children." },
-    { id: "f10", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Brandenburg Gate & Pariser Platz", blurb: "Iconic and central — visit early before crowds, then pair it with breakfast nearby." }
+    { id: "f5", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Berliner Dom & Museum Island", blurb: "The dome climb is manageable with a 6-year-old; lovely grounds by the Spree. The Pergamon mosaic gallery is nearby too.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/141227_Berliner_Dom.jpg&width=600" },
+    { id: "f6", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Boat Tour on the Spree", blurb: "A 1-hour city boat tour — kids can move around, and you cover a lot of the city comfortably.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Berlin-_Bundestag_by_the_Spree_-_3570.jpg&width=600" },
+    { id: "f7", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "East Side Gallery", blurb: "A 1.3km walk along the Wall the kids can handle, with great photos and easy history at a 6-year-old level.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Segment_with_Graffiti_of_the_Berlin_Wall_(3_of_4)_(cropped).jpg&width=600" },
+    { id: "f8", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Prenzlauer Berg Neighborhood", blurb: "Playgrounds on almost every block, great bakeries, and the Kulturbrauerei with regular events.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Berlin-Kulturbrauerei.jpg&width=600" },
+    { id: "f9", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Treptower Park & Soviet Memorial", blurb: "A spacious riverside park with a memorial that's visually striking even for young children.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Sowjetisches_Ehrendenkmal_Klemm_Russischer_Soldat.jpg&width=600" },
+    { id: "f10", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Brandenburg Gate & Pariser Platz", blurb: "Iconic and central — visit early before crowds, then pair it with breakfast nearby.", img: "https://commons.wikimedia.org/w/index.php?title=Special:Redirect/file/Brandenburger_Tor_abends.jpg&width=600" }
   ];
 
   /* ---------------- State ---------------- */
@@ -788,6 +868,21 @@ if (FIREBASE_CONFIGURED) {
     });
   }
 
+  var lineStripWrapper = document.getElementById("lineStripWrapper");
+  function updateScrollFades() {
+    var sl = lineStrip.scrollLeft;
+    var maxSl = lineStrip.scrollWidth - lineStrip.clientWidth;
+    lineStripWrapper.classList.toggle("can-scroll-left", sl > 2);
+    lineStripWrapper.classList.toggle("at-end", sl >= maxSl - 2);
+  }
+  lineStrip.addEventListener("scroll", updateScrollFades, { passive: true });
+  document.getElementById("stripScrollLeft").addEventListener("click", function() {
+    lineStrip.scrollBy({ left: -160, behavior: "smooth" });
+  });
+  document.getElementById("stripScrollRight").addEventListener("click", function() {
+    lineStrip.scrollBy({ left: 160, behavior: "smooth" });
+  });
+
   function scrollSelectedIntoView() {
     var node = lineTrack.querySelector('.day-node[data-date="' + state.selectedDate + '"]');
     if (node) {
@@ -795,6 +890,7 @@ if (FIREBASE_CONFIGURED) {
       var nodeRect = node.getBoundingClientRect();
       var offset = (nodeRect.left + nodeRect.width / 2) - (stripRect.left + stripRect.width / 2);
       lineStrip.scrollLeft += offset;
+      updateScrollFades();
     }
   }
 
@@ -849,7 +945,11 @@ if (FIREBASE_CONFIGURED) {
 
   function renderItemCard(item) {
     var tagClass = item.category === "kids" ? "" : item.category === "family" ? "family" : "custom";
+    var srcActivity = item.libId ? ACTIVITIES.find(function (a) { return a.id === item.libId; }) : null;
     var html = '<div class="item-card" id="card-' + item.id + '">';
+    if (srcActivity && srcActivity.img) {
+      html += '<img class="item-card-img" src="' + srcActivity.img + '" alt="' + escapeAttr(item.title) + '" loading="lazy">';
+    }
     html += '<div class="item-row">';
     html += '<div class="item-time' + (item.time ? "" : " flex") + '">' + (item.time || "—") + "</div>";
     html += '<div class="item-tag ' + tagClass + '"></div>';
@@ -987,6 +1087,7 @@ if (FIREBASE_CONFIGURED) {
         var added = addedIds.indexOf(a.id) >= 0;
         html += '<div class="lib-item">';
         html += '<div class="item-tag ' + (cat === "family" ? "family" : "") + '"></div>';
+        if (a.img) html += '<img class="lib-item-thumb" src="' + a.img + '" alt="" loading="lazy">';
         html += '<div class="lib-item-body">';
         html += '<p class="lib-item-title">' + escapeHtml(a.title) + "</p>";
         html += '<p class="lib-item-blurb">' + escapeHtml(a.blurb) + "</p>";
