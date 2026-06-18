@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Berlin, Day by Day</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400..700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+  :root {
+    --cream: #FAF6EC;
+    --surface: #FFFFFF;
+    --ink: #211F1A;
+    --muted: #6E6759;
+    --line: #E7E0D0;
+    --yellow: #F2B705;
+    --yellow-deep: #C99200;
+    --terracotta: #D9683A;
+    --terracotta-deep: #B4502A;
+    --teal: #1F6F66;
+    --teal-deep: #144E47;
+    --sage: #7C9473;
+    --danger: #A8462E;
+
+    --font-display: 'Fraunces', Georgia, 'Iowan Old Style', serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+
+  body {
+    background: var(--cream);
+    color: var(--ink);
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    min-height: 100vh;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+  }
+
+  .app {
+    max-width: 720px;
+    margin: 0 auto;
+    padding-bottom: 96px;
+    min-height: 100vh;
+    position: relative;
+  }
+
+  /* ---------- Header ---------- */
+  .app-header {
+    padding: 28px 20px 18px;
+    border-bottom: 1px solid var(--line);
+  }
+  .brand-eyebrow {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    letter-spacing: 0.14em;
+    color: var(--teal-deep);
+    text-transform: uppercase;
+  }
+  .app-header h1 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 32px;
+    margin: 4px 0 6px;
+    letter-spacing: -0.01em;
+  }
+  .brand-sub {
+    margin: 0;
+    color: var(--muted);
+    font-size: 14px;
+  }
+  .sync-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 4px 10px 4px 8px;
+    border-radius: 100px;
+    font-size: 11.5px;
+    font-family: var(--font-mono);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--muted);
+  }
+  .sync-badge .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex: 0 0 auto;
+  }
+  .sync-badge.live .dot { background: var(--teal); }
+  .sync-badge.live { color: var(--teal-deep); border-color: #CFE3DF; background: #F0F7F5; }
+  .sync-badge.offline .dot { background: var(--terracotta); }
+  .sync-badge.offline { color: var(--terracotta-deep); border-color: #F0DCC9; background: #FBF1E6; }
+  .sync-badge.local .dot { background: var(--yellow-deep); }
+  .sync-badge.local { color: var(--yellow-deep); border-color: #F0DFA6; background: #FCF6E0; }
+
+  /* ---------- Transit line strip (signature element) ---------- */
+  .line-strip {
+    padding: 18px 0 14px;
+    border-bottom: 1px solid var(--line);
+    background: var(--surface);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .line-strip::-webkit-scrollbar { display: none; }
+
+  .line-track {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 0;
+    padding: 0 20px;
+    min-width: max-content;
+    height: 64px;
+  }
+  .line-rail {
+    position: absolute;
+    left: 20px;
+    right: 20px;
+    top: 22px;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(
+      to right,
+      var(--terracotta) 0%,
+      var(--terracotta) var(--rail-split-a),
+      var(--yellow) var(--rail-split-a),
+      var(--yellow) var(--rail-split-b),
+      var(--teal) var(--rail-split-b),
+      var(--teal) 100%
+    );
+  }
+
+  .day-node {
+    position: relative;
+    width: 38px;
+    flex: 0 0 38px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    font-family: var(--font-mono);
+    color: var(--muted);
+  }
+  .day-node .dot {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--surface);
+    border: 3px solid var(--terracotta);
+    margin-top: 13px;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .day-node.stay-2 .dot { border-color: var(--teal); }
+  .day-node.transition .dot {
+    border-radius: 4px;
+    transform: rotate(45deg);
+    background: var(--yellow);
+    border-color: var(--yellow-deep);
+  }
+  .day-node .num {
+    font-size: 10px;
+    margin-top: 6px;
+    white-space: nowrap;
+  }
+  .day-node.selected .dot {
+    transform: scale(1.35);
+    box-shadow: 0 0 0 3px var(--cream), 0 0 0 5px var(--ink);
+  }
+  .day-node.transition.selected .dot { transform: rotate(45deg) scale(1.35); }
+  .day-node.has-items .dot { background: var(--ink); }
+  .day-node:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; border-radius: 4px; }
+
+  /* ---------- Day panel ---------- */
+  .day-panel { padding: 20px; }
+
+  .day-head {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 4px;
+  }
+  .day-head h2 {
+    font-family: var(--font-display);
+    font-size: 24px;
+    margin: 0;
+  }
+  .day-counter {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .area-badge {
+    display: inline-block;
+    margin: 6px 0 18px;
+    padding: 5px 11px;
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #FBEFE6;
+    color: var(--terracotta-deep);
+  }
+  .area-badge.stay-2 { background: #E7F1EF; color: var(--teal-deep); }
+  .area-badge.transition { background: #FCF3D9; color: var(--yellow-deep); }
+
+  .empty-state {
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    padding: 28px 20px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14px;
+    margin-bottom: 16px;
+  }
+
+  .agenda-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px; }
+
+  .item-card {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .item-row { display: flex; gap: 12px; align-items: flex-start; }
+  .item-time {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--ink);
+    min-width: 50px;
+    padding-top: 2px;
+  }
+  .item-time.flex { color: var(--muted); }
+  .item-tag {
+    flex: 0 0 4px;
+    align-self: stretch;
+    border-radius: 4px;
+    background: var(--terracotta);
+  }
+  .item-tag.family { background: var(--sage); }
+  .item-tag.custom { background: var(--ink); }
+  .item-body { flex: 1; min-width: 0; }
+  .item-title { font-weight: 600; font-size: 15px; margin: 0 0 2px; }
+  .item-notes { font-size: 13px; color: var(--muted); margin: 0; white-space: pre-wrap; }
+  .item-booking {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 6px;
+    font-family: var(--font-mono);
+    font-size: 11.5px;
+    background: var(--cream);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 3px 7px;
+    color: var(--muted);
+  }
+  .item-actions { display: flex; gap: 6px; flex: 0 0 auto; }
+  .icon-btn {
+    width: 30px; height: 30px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 14px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .icon-btn:hover { background: var(--cream); color: var(--ink); }
+  .icon-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  .edit-form {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  label.field-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 3px;
+    display: block;
+  }
+  input[type="text"], input[type="time"], textarea {
+    width: 100%;
+    font-family: var(--font-body);
+    font-size: 14px;
+    padding: 9px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+    background: var(--cream);
+    color: var(--ink);
+  }
+  textarea { resize: vertical; min-height: 54px; }
+  input:focus-visible, textarea:focus-visible { outline: 2px solid var(--ink); outline-offset: 1px; }
+
+  .form-row-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+
+  .btn {
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: 13px;
+    border-radius: 9px;
+    padding: 9px 14px;
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: var(--cream);
+    cursor: pointer;
+  }
+  .btn:focus-visible { outline: 2px solid var(--teal); outline-offset: 2px; }
+  .btn.secondary { background: var(--surface); color: var(--ink); border-color: var(--line); }
+  .btn.danger { background: var(--surface); color: var(--danger); border-color: var(--danger); }
+  .btn.small { padding: 6px 11px; font-size: 12.5px; }
+
+  .add-day-btn {
+    width: 100%;
+    padding: 13px;
+    border-radius: 12px;
+    border: 1.5px dashed var(--terracotta);
+    background: #FBEFE6;
+    color: var(--terracotta-deep);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .add-day-btn:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+  /* ---------- FAB ---------- */
+  .fab {
+    position: fixed;
+    bottom: 22px;
+    right: max(22px, calc((100vw - 720px) / 2 + 22px));
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--yellow);
+    color: var(--ink);
+    border: none;
+    font-size: 26px;
+    font-weight: 600;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    cursor: pointer;
+    z-index: 20;
+  }
+  .fab:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(33,31,26,0.45);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    z-index: 30;
+  }
+  .modal-overlay[hidden] { display: none; }
+  .modal-sheet {
+    background: var(--cream);
+    width: 100%;
+    max-width: 720px;
+    max-height: 86vh;
+    border-radius: 18px 18px 0 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  @media (min-width: 560px) {
+    .modal-overlay { align-items: center; }
+    .modal-sheet { border-radius: 18px; max-height: 80vh; margin: 20px; }
+  }
+
+  .modal-head {
+    padding: 16px 18px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .modal-head h3 { font-family: var(--font-display); font-size: 20px; margin: 0; }
+  .modal-close { background: none; border: none; font-size: 20px; color: var(--muted); cursor: pointer; padding: 4px 8px; }
+
+  .tabs { display: flex; gap: 6px; padding: 14px 18px 0; }
+  .tab-btn {
+    flex: 1;
+    padding: 9px;
+    border-radius: 9px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+  }
+  .tab-btn.active { background: var(--ink); color: var(--cream); border-color: var(--ink); }
+
+  .modal-body { padding: 14px 18px 22px; overflow-y: auto; }
+
+  .area-toggle {
+    font-size: 12.5px;
+    color: var(--teal-deep);
+    background: none;
+    border: none;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0 0 10px;
+    display: block;
+  }
+
+  .lib-group-label {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin: 14px 0 8px;
+  }
+  .lib-group-label:first-child { margin-top: 0; }
+
+  .lib-item {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 8px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+  .lib-item .item-tag { width: 4px; flex: 0 0 4px; }
+  .lib-item-body { flex: 1; min-width: 0; }
+  .lib-item-title { font-weight: 600; font-size: 14px; margin: 0 0 3px; }
+  .lib-item-blurb { font-size: 12.5px; color: var(--muted); margin: 0; }
+  .lib-added-badge {
+    font-size: 10.5px;
+    font-family: var(--font-mono);
+    color: var(--teal-deep);
+    margin-top: 5px;
+    display: inline-block;
+  }
+  .lib-add-btn {
+    flex: 0 0 auto;
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--ink);
+    background: var(--surface);
+    font-size: 16px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .lib-add-btn:hover { background: var(--ink); color: var(--cream); }
+
+  .toast {
+    position: fixed;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--ink);
+    color: var(--cream);
+    padding: 9px 16px;
+    border-radius: 100px;
+    font-size: 13px;
+    z-index: 40;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+  .toast.show { opacity: 1; }
+
+  .footer-note {
+    padding: 4px 20px 26px;
+    font-size: 11.5px;
+    color: var(--muted);
+    text-align: center;
+  }
+  .footer-note button {
+    background: none; border: none; color: var(--danger);
+    text-decoration: underline; cursor: pointer; font-size: 11.5px;
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <header class="app-header">
+    <div class="brand-eyebrow">Family trip</div>
+    <h1>Berlin, Day by Day</h1>
+    <p class="brand-sub">Jul 11 – Aug 7 · Schöneberg, then Mitte / Prenzlauer Berg</p>
+    <div class="sync-badge" id="syncBadge"><span class="dot"></span><span id="syncBadgeText">Starting up…</span></div>
+  </header>
+
+  <nav class="line-strip" id="lineStrip" aria-label="Trip days">
+    <div class="line-track" id="lineTrack">
+      <div class="line-rail" id="lineRail"></div>
+    </div>
+  </nav>
+
+  <main class="day-panel" id="dayPanel"></main>
+
+  <button class="fab" id="fabBtn" aria-label="Add an activity to this day">+</button>
+</div>
+
+<div class="modal-overlay" id="modalOverlay" hidden>
+  <div class="modal-sheet" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle">Add to this day</h3>
+      <button class="modal-close" id="modalCloseBtn" aria-label="Close">✕</button>
+    </div>
+    <div class="tabs">
+      <button class="tab-btn active" id="tabLibraryBtn">From the list</button>
+      <button class="tab-btn" id="tabCustomBtn">Add your own</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getDatabase, ref, onValue, set } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+
+/* =========================================================================
+   FIREBASE SETUP
+   Replace the placeholder values below with the config from your own
+   Firebase project (Project settings → General → Your apps → SDK setup
+   and configuration). Full walkthrough in SETUP.md.
+   Until you do this, the app runs in local-only mode — fully usable on
+   one device, but changes won't sync to another phone.
+   ========================================================================= */
+var FIREBASE_CONFIG = {
+  apiKey: "AIzaSyCHiwaJJrMwUttmn2E0OU4NiTkvHSU7Grg",
+  authDomain: "berlin-trip-56733.firebaseapp.com",
+  databaseURL: "https://berlin-trip-56733-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "berlin-trip-56733",
+  storageBucket: "berlin-trip-56733.firebasestorage.app",
+  messagingSenderId: "171925013439",
+  appId: "1:171925013439:web:0155a9a4265e658703d70a",
+};
+var TRIP_PATH = "trips/berlin-2026";
+/* ========================================================================= */
+
+var FIREBASE_CONFIGURED = FIREBASE_CONFIG.apiKey !== "YOUR_API_KEY";
+var fbApp = null, fbDb = null, fbDataRef = null, fbConnectedRef = null;
+
+if (FIREBASE_CONFIGURED) {
+  try {
+    fbApp = initializeApp(FIREBASE_CONFIG);
+    fbDb = getDatabase(fbApp);
+    fbDataRef = ref(fbDb, TRIP_PATH);
+    fbConnectedRef = ref(fbDb, ".info/connected");
+  } catch (e) {
+    console.error("Firebase init failed:", e);
+    fbApp = null;
+  }
+}
+
+(function () {
+  "use strict";
+
+
+  /* ---------------- Trip constants ---------------- */
+  var TRIP_START = "2026-07-11";
+  var STAY2_START = "2026-07-22"; // transition day, also first night of stay 2
+  var TRIP_END = "2026-08-07";
+
+  var DAYS = [];
+  for (var d = 11; d <= 31; d++) DAYS.push("2026-07-" + String(d).padStart(2, "0"));
+  for (var d2 = 1; d2 <= 7; d2++) DAYS.push("2026-08-" + String(d2).padStart(2, "0"));
+
+  function getStay(dateStr) {
+    if (dateStr < STAY2_START) return 1;
+    if (dateStr === STAY2_START) return "transition";
+    return 2;
+  }
+  function getAreaLabel(dateStr) {
+    var s = getStay(dateStr);
+    if (s === 1) return "Schöneberg";
+    if (s === 2) return "Mitte / Prenzlauer Berg";
+    return "Moving day — Schöneberg → Mitte/Prenzlauer Berg";
+  }
+  function weekdayShort(dateStr) {
+    return new Date(dateStr + "T12:00:00").toLocaleDateString(undefined, { weekday: "short" });
+  }
+  function fullDateLabel(dateStr) {
+    return new Date(dateStr + "T12:00:00").toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  }
+  function dayNum(dateStr) { return new Date(dateStr + "T12:00:00").getDate(); }
+
+  /* ---------------- Activity library ---------------- */
+  var ACTIVITIES = [
+    { id: "k1", category: "kids", stay: 1, area: "Schöneberg", title: "Volkspark Wilmersdorf", blurb: "Large green park with a pond — perfect for burning off toddler energy, just a short walk away." },
+    { id: "k2", category: "kids", stay: 1, area: "Schöneberg", title: "Legoland Discovery Centre", blurb: "Indoor Lego world at Potsdamer Platz, about 10 minutes away. A hit for both kids." },
+    { id: "k3", category: "kids", stay: 1, area: "Schöneberg", title: "Tempodrom Circus Shows", blurb: "Check their summer family programming for circus arts shows." },
+    { id: "k4", category: "kids", stay: 1, area: "Schöneberg", title: "Kindl-Zentrum für zeitgenössische Kunst", blurb: "Interactive children's programming on weekends." },
+
+    { id: "k5", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Mauerpark", blurb: "Giant flea market on Sundays plus a massive playground — gravel hills and climbing frames for the 6-year-old, open space for the toddler." },
+    { id: "k6", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Volkspark Friedrichshain", blurb: "The fairy-tale fountain (Märchenbrunnen) kids adore, plus a splash area in summer." },
+    { id: "k7", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Naturkundemuseum", blurb: "The biggest dinosaur skeleton in Europe — a sure hit, and manageable for toddlers too." },
+    { id: "k8", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Kinderbauernhof am Mauerpark", blurb: "Free, hands-on city farm with animals, right in the middle of the city." },
+    { id: "k9", category: "kids", stay: 2, area: "Mitte / Prenzlauer Berg", title: "FEZ Wuhlheide", blurb: "Berlin's largest children's leisure centre — pools, adventure playground, mini train. Worth the trip out." },
+
+    { id: "f1", category: "family", stay: 1, area: "Schöneberg", title: "Tiergarten", blurb: "Berlin's central park — great for cycling and picnics, plenty of room for the boys to run." },
+    { id: "f2", category: "family", stay: 1, area: "Schöneberg", title: "Berlin Zoo & Aquarium", blurb: "Right next to Tiergarten, one of the world's best zoos. The panda enclosure is a highlight." },
+    { id: "f3", category: "family", stay: 1, area: "Schöneberg", title: "Potsdamer Platz", blurb: "Easy stroll with accessible cafés, the Sony Center atrium, and street performances in summer." },
+    { id: "f4", category: "family", stay: 1, area: "Schöneberg", title: "Tempelhof Feld", blurb: "The old airport turned public park — cycle, kite, skateboard and picnic on the runways. Free and totally unique." },
+
+    { id: "f5", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Berliner Dom & Museum Island", blurb: "The dome climb is manageable with a 6-year-old; lovely grounds by the Spree. The Pergamon mosaic gallery is nearby too." },
+    { id: "f6", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Boat Tour on the Spree", blurb: "A 1-hour city boat tour — kids can move around, and you cover a lot of the city comfortably." },
+    { id: "f7", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "East Side Gallery", blurb: "A 1.3km walk along the Wall the kids can handle, with great photos and easy history at a 6-year-old level." },
+    { id: "f8", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Prenzlauer Berg Neighborhood", blurb: "Playgrounds on almost every block, great bakeries, and the Kulturbrauerei with regular events." },
+    { id: "f9", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Treptower Park & Soviet Memorial", blurb: "A spacious riverside park with a memorial that's visually striking even for young children." },
+    { id: "f10", category: "family", stay: 2, area: "Mitte / Prenzlauer Berg", title: "Brandenburg Gate & Pariser Platz", blurb: "Iconic and central — visit early before crowds, then pair it with breakfast nearby." }
+  ];
+
+  /* ---------------- State ---------------- */
+  var today = new Date().toISOString().slice(0, 10);
+  var defaultDate = (DAYS.indexOf(today) >= 0) ? today : DAYS[0];
+
+  var state = {
+    selectedDate: defaultDate,
+    data: { agenda: {} },
+    loaded: false,
+    modalTab: "library",
+    libraryShowAll: false,
+    editingItemId: null
+  };
+
+  function genId() {
+    return "item-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+  }
+
+  function getDayItems(dateStr) {
+    return (state.data.agenda && state.data.agenda[dateStr]) || [];
+  }
+
+  function sortedDayItems(dateStr) {
+    var items = getDayItems(dateStr).slice();
+    items.sort(function (a, b) {
+      if (a.time && b.time) return a.time < b.time ? -1 : a.time > b.time ? 1 : 0;
+      if (a.time && !b.time) return -1;
+      if (!a.time && b.time) return 1;
+      return 0;
+    });
+    return items;
+  }
+
+  /* ---------------- Storage ----------------
+     Local storage is always the immediate, offline-safe cache so the UI
+     never blocks on network. When Firebase is configured, a realtime
+     listener keeps state.data in sync with the shared database — any
+     change from either phone re-renders the current view automatically. */
+  var LOCAL_KEY = "berlin-itinerary-data";
+
+  function hasCloud() { return FIREBASE_CONFIGURED && !!fbDataRef; }
+
+  function readLocalCache() {
+    try {
+      var raw = window.localStorage.getItem(LOCAL_KEY);
+      if (raw) {
+        var parsed = JSON.parse(raw);
+        if (parsed && parsed.agenda) return parsed;
+      }
+    } catch (e) {}
+    return { agenda: {} };
+  }
+
+  function writeLocalCache(data) {
+    try { window.localStorage.setItem(LOCAL_KEY, JSON.stringify(data)); }
+    catch (e) { showToast("Couldn't save on this device"); }
+  }
+
+  function setSyncBadge(mode, text) {
+    var badge = document.getElementById("syncBadge");
+    var label = document.getElementById("syncBadgeText");
+    if (!badge || !label) return;
+    badge.className = "sync-badge " + mode;
+    label.textContent = text;
+  }
+
+  function loadData() {
+    return new Promise(function (resolve) {
+      var resolved = false;
+      function finish() {
+        if (resolved) return;
+        resolved = true;
+        state.loaded = true;
+        resolve();
+      }
+
+      state.data = readLocalCache();
+
+      if (!hasCloud()) {
+        setSyncBadge("local", "Local only — see SETUP.md to enable sync");
+        finish();
+        return;
+      }
+
+      onValue(fbDataRef, function (snapshot) {
+        var val = snapshot.val();
+        state.data = (val && val.agenda) ? val : { agenda: {} };
+        writeLocalCache(state.data);
+        if (resolved && !state.editingItemId) {
+          renderDayPanel();
+        }
+        finish();
+      }, function (err) {
+        console.error("Firebase read failed:", err);
+        setSyncBadge("offline", "Sync error — working from local copy");
+        finish();
+      });
+
+      onValue(fbConnectedRef, function (snap) {
+        if (snap.val() === true) setSyncBadge("live", "Synced live");
+        else setSyncBadge("offline", "Offline — saved on this device");
+      });
+    });
+  }
+
+  function saveData() {
+    writeLocalCache(state.data);
+    if (hasCloud()) {
+      return set(fbDataRef, state.data).catch(function (e) {
+        console.error("Firebase write failed:", e);
+        showToast("Saved locally — sync failed, will retry on next change");
+      });
+    }
+    return Promise.resolve();
+  }
+
+  /* ---------------- Toast ---------------- */
+  var toastEl = document.getElementById("toast");
+  var toastTimer = null;
+  function showToast(msg) {
+    toastEl.textContent = msg;
+    toastEl.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function () { toastEl.classList.remove("show"); }, 1800);
+  }
+
+  /* ---------------- Line strip ---------------- */
+  var lineTrack = document.getElementById("lineTrack");
+  var lineRail = document.getElementById("lineRail");
+  var lineStrip = document.getElementById("lineStrip");
+
+  function buildLineStrip() {
+    var stay1Count = DAYS.filter(function (dt) { return getStay(dt) === 1; }).length;
+    var transCount = DAYS.filter(function (dt) { return getStay(dt) === "transition"; }).length;
+    var total = DAYS.length;
+    var splitA = (stay1Count / total * 100).toFixed(2) + "%";
+    var splitB = ((stay1Count + transCount) / total * 100).toFixed(2) + "%";
+    lineRail.style.setProperty("--rail-split-a", splitA);
+    lineRail.style.setProperty("--rail-split-b", splitB);
+
+    DAYS.forEach(function (dt) {
+      var stay = getStay(dt);
+      var btn = document.createElement("button");
+      btn.className = "day-node " + (stay === "transition" ? "transition" : "stay-" + stay);
+      btn.setAttribute("data-date", dt);
+      btn.setAttribute("aria-label", fullDateLabel(dt));
+      btn.innerHTML = '<span class="dot"></span><span class="num">' + dayNum(dt) + "</span>";
+      btn.addEventListener("click", function () { selectDate(dt); });
+      lineTrack.appendChild(btn);
+    });
+  }
+
+  function refreshLineStripSelection() {
+    var nodes = lineTrack.querySelectorAll(".day-node");
+    nodes.forEach(function (node) {
+      var dt = node.getAttribute("data-date");
+      node.classList.toggle("selected", dt === state.selectedDate);
+      node.classList.toggle("has-items", getDayItems(dt).length > 0);
+    });
+  }
+
+  function scrollSelectedIntoView() {
+    var node = lineTrack.querySelector('.day-node[data-date="' + state.selectedDate + '"]');
+    if (node) {
+      var stripRect = lineStrip.getBoundingClientRect();
+      var nodeRect = node.getBoundingClientRect();
+      var offset = (nodeRect.left + nodeRect.width / 2) - (stripRect.left + stripRect.width / 2);
+      lineStrip.scrollLeft += offset;
+    }
+  }
+
+  /* ---------------- Day panel rendering ---------------- */
+  var dayPanel = document.getElementById("dayPanel");
+
+  function categoryLabel(cat) {
+    if (cat === "kids") return "Kids only";
+    if (cat === "family") return "Full family";
+    return "Custom";
+  }
+
+  function renderDayPanel() {
+    var dt = state.selectedDate;
+    var stay = getStay(dt);
+    var idx = DAYS.indexOf(dt) + 1;
+    var items = sortedDayItems(dt);
+
+    var html = "";
+    html += '<div class="day-head"><h2>' + fullDateLabel(dt) + "</h2>";
+    html += '<span class="day-counter">Day ' + idx + " of " + DAYS.length + "</span></div>";
+    html += '<span class="area-badge ' + (stay === "transition" ? "transition" : "stay-" + stay) + '">' + getAreaLabel(dt) + "</span>";
+
+    if (items.length === 0) {
+      html += '<div class="empty-state">No plans yet for this day. Tap the list below to add something, or jot down your own.</div>';
+    } else {
+      html += '<div class="agenda-list">';
+      items.forEach(function (item) {
+        html += renderItemCard(item);
+      });
+      html += "</div>";
+    }
+
+    html += '<button class="add-day-btn" id="addDayBtn">+ Add to this day</button>';
+    dayPanel.innerHTML = html;
+
+    document.getElementById("addDayBtn").addEventListener("click", function () { openModal("library"); });
+
+    items.forEach(function (item) {
+      var editBtn = document.getElementById("edit-" + item.id);
+      var delBtn = document.getElementById("del-" + item.id);
+      if (editBtn) editBtn.addEventListener("click", function () { toggleEdit(item.id); });
+      if (delBtn) delBtn.addEventListener("click", function () { deleteItem(item.id); });
+
+      if (state.editingItemId === item.id) {
+        wireEditForm(item);
+      }
+    });
+
+    refreshLineStripSelection();
+  }
+
+  function renderItemCard(item) {
+    var tagClass = item.category === "kids" ? "" : item.category === "family" ? "family" : "custom";
+    var html = '<div class="item-card" id="card-' + item.id + '">';
+    html += '<div class="item-row">';
+    html += '<div class="item-time' + (item.time ? "" : " flex") + '">' + (item.time || "—") + "</div>";
+    html += '<div class="item-tag ' + tagClass + '"></div>';
+    html += '<div class="item-body">';
+    html += '<p class="item-title">' + escapeHtml(item.title) + "</p>";
+    if (item.notes) html += '<p class="item-notes">' + escapeHtml(item.notes) + "</p>";
+    if (item.booking) html += '<span class="item-booking">🎫 ' + escapeHtml(item.booking) + "</span>";
+    html += "</div>";
+    html += '<div class="item-actions">';
+    html += '<button class="icon-btn" id="edit-' + item.id + '" aria-label="Edit">✎</button>';
+    html += '<button class="icon-btn" id="del-' + item.id + '" aria-label="Delete">✕</button>';
+    html += "</div></div>";
+
+    if (state.editingItemId === item.id) {
+      html += '<div class="edit-form" id="form-' + item.id + '">';
+      html += '<div><label class="field-label" for="title-' + item.id + '">Title</label>';
+      html += '<input type="text" id="title-' + item.id + '" value="' + escapeAttr(item.title) + '" ' + (item.category === "custom" ? "" : "disabled") + " /></div>";
+      html += '<div><label class="field-label" for="time-' + item.id + '">Time</label>';
+      html += '<input type="time" id="time-' + item.id + '" value="' + (item.time || "") + '" /></div>';
+      html += '<div><label class="field-label" for="notes-' + item.id + '">Notes</label>';
+      html += '<textarea id="notes-' + item.id + '">' + escapeHtml(item.notes || "") + "</textarea></div>";
+      html += '<div><label class="field-label" for="booking-' + item.id + '">Booking confirmation</label>';
+      html += '<input type="text" id="booking-' + item.id + '" value="' + escapeAttr(item.booking || "") + '" placeholder="e.g. confirmation code" /></div>';
+      html += '<div class="form-row-actions">';
+      html += '<button class="btn secondary small" id="cancel-' + item.id + '">Cancel</button>';
+      html += '<button class="btn small" id="save-' + item.id + '">Save</button>';
+      html += "</div></div>";
+    }
+    html += "</div>";
+    return html;
+  }
+
+  function toggleEdit(itemId) {
+    state.editingItemId = state.editingItemId === itemId ? null : itemId;
+    renderDayPanel();
+  }
+
+  function wireEditForm(item) {
+    var saveBtn = document.getElementById("save-" + item.id);
+    var cancelBtn = document.getElementById("cancel-" + item.id);
+    if (cancelBtn) cancelBtn.addEventListener("click", function () { state.editingItemId = null; renderDayPanel(); });
+    if (saveBtn) saveBtn.addEventListener("click", function () {
+      var titleEl = document.getElementById("title-" + item.id);
+      var timeEl = document.getElementById("time-" + item.id);
+      var notesEl = document.getElementById("notes-" + item.id);
+      var bookingEl = document.getElementById("booking-" + item.id);
+
+      var dayItems = getDayItems(state.selectedDate);
+      var target = dayItems.find(function (it) { return it.id === item.id; });
+      if (target) {
+        if (target.category === "custom" && titleEl) target.title = titleEl.value.trim() || target.title;
+        target.time = timeEl.value || "";
+        target.notes = notesEl.value.trim();
+        target.booking = bookingEl.value.trim();
+      }
+      state.editingItemId = null;
+      saveData().then(function () { renderDayPanel(); });
+    });
+  }
+
+  function deleteItem(itemId) {
+    var dayItems = getDayItems(state.selectedDate);
+    state.data.agenda[state.selectedDate] = dayItems.filter(function (it) { return it.id !== itemId; });
+    saveData().then(function () {
+      renderDayPanel();
+      showToast("Removed");
+    });
+  }
+
+  function escapeHtml(str) {
+    return String(str).replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  function escapeAttr(str) { return escapeHtml(str); }
+
+  function selectDate(dt) {
+    state.selectedDate = dt;
+    state.editingItemId = null;
+    renderDayPanel();
+    scrollSelectedIntoView();
+  }
+
+  /* ---------------- Modal ---------------- */
+  var modalOverlay = document.getElementById("modalOverlay");
+  var modalBody = document.getElementById("modalBody");
+  var modalTitle = document.getElementById("modalTitle");
+  var tabLibraryBtn = document.getElementById("tabLibraryBtn");
+  var tabCustomBtn = document.getElementById("tabCustomBtn");
+
+  function openModal(tab) {
+    state.modalTab = tab || "library";
+    modalOverlay.hidden = false;
+    renderModal();
+  }
+  function closeModal() { modalOverlay.hidden = true; }
+
+  document.getElementById("fabBtn").addEventListener("click", function () { openModal("library"); });
+  document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+  modalOverlay.addEventListener("click", function (e) { if (e.target === modalOverlay) closeModal(); });
+  tabLibraryBtn.addEventListener("click", function () { state.modalTab = "library"; renderModal(); });
+  tabCustomBtn.addEventListener("click", function () { state.modalTab = "custom"; renderModal(); });
+
+  function renderModal() {
+    tabLibraryBtn.classList.toggle("active", state.modalTab === "library");
+    tabCustomBtn.classList.toggle("active", state.modalTab === "custom");
+    modalTitle.textContent = "Add to " + new Date(state.selectedDate + "T12:00:00").toLocaleDateString(undefined, { month: "short", day: "numeric" });
+
+    if (state.modalTab === "library") renderLibraryTab();
+    else renderCustomTab();
+  }
+
+  function renderLibraryTab() {
+    var stay = getStay(state.selectedDate);
+    var relevantStay = stay === "transition" ? null : stay;
+    var pool = state.libraryShowAll || !relevantStay
+      ? ACTIVITIES
+      : ACTIVITIES.filter(function (a) { return a.stay === relevantStay; });
+
+    var dayItems = getDayItems(state.selectedDate);
+    var addedIds = dayItems.map(function (it) { return it.libId; }).filter(Boolean);
+
+    var html = "";
+    if (relevantStay) {
+      html += '<button class="area-toggle" id="areaToggleBtn">' +
+        (state.libraryShowAll ? "Showing all activities — show this stay's area only" : "Showing " + getAreaLabel(state.selectedDate) + " only — show everything") +
+        "</button>";
+    }
+
+    ["kids", "family"].forEach(function (cat) {
+      var group = pool.filter(function (a) { return a.category === cat; });
+      if (group.length === 0) return;
+      html += '<div class="lib-group-label">' + (cat === "kids" ? "Kids-only" : "Full family") + "</div>";
+      group.forEach(function (a) {
+        var added = addedIds.indexOf(a.id) >= 0;
+        html += '<div class="lib-item">';
+        html += '<div class="item-tag ' + (cat === "family" ? "family" : "") + '"></div>';
+        html += '<div class="lib-item-body">';
+        html += '<p class="lib-item-title">' + escapeHtml(a.title) + "</p>";
+        html += '<p class="lib-item-blurb">' + escapeHtml(a.blurb) + "</p>";
+        if (added) html += '<span class="lib-added-badge">✓ Already on this day</span>';
+        html += "</div>";
+        html += '<button class="lib-add-btn" id="add-' + a.id + '" aria-label="Add ' + escapeAttr(a.title) + '">+</button>';
+        html += "</div>";
+      });
+    });
+
+    modalBody.innerHTML = html;
+
+    var toggleBtn = document.getElementById("areaToggleBtn");
+    if (toggleBtn) toggleBtn.addEventListener("click", function () {
+      state.libraryShowAll = !state.libraryShowAll;
+      renderLibraryTab();
+    });
+
+    pool.forEach(function (a) {
+      var btn = document.getElementById("add-" + a.id);
+      if (btn) btn.addEventListener("click", function () { addLibraryItem(a); });
+    });
+  }
+
+  function addLibraryItem(activity) {
+    var dt = state.selectedDate;
+    if (!state.data.agenda[dt]) state.data.agenda[dt] = [];
+    state.data.agenda[dt].push({
+      id: genId(),
+      title: activity.title,
+      category: activity.category,
+      libId: activity.id,
+      time: "",
+      notes: "",
+      booking: ""
+    });
+    saveData().then(function () {
+      renderDayPanel();
+      renderLibraryTab();
+      showToast("Added to " + fullDateLabel(dt));
+    });
+  }
+
+  function renderCustomTab() {
+    var html = "";
+    html += '<div><label class="field-label" for="customTitle">Title</label>';
+    html += '<input type="text" id="customTitle" placeholder="e.g. Dinner at Curry 36" /></div>';
+    html += '<div style="margin-top:10px;"><label class="field-label" for="customTime">Time</label>';
+    html += '<input type="time" id="customTime" /></div>';
+    html += '<div style="margin-top:10px;"><label class="field-label" for="customNotes">Notes</label>';
+    html += '<textarea id="customNotes" placeholder="Anything worth remembering"></textarea></div>';
+    html += '<div style="margin-top:10px;"><label class="field-label" for="customBooking">Booking confirmation</label>';
+    html += '<input type="text" id="customBooking" placeholder="Optional" /></div>';
+    html += '<div class="form-row-actions" style="margin-top:14px;">';
+    html += '<button class="btn" id="customAddBtn">Add to this day</button></div>';
+    modalBody.innerHTML = html;
+
+    document.getElementById("customAddBtn").addEventListener("click", function () {
+      var titleEl = document.getElementById("customTitle");
+      var title = titleEl.value.trim();
+      if (!title) { titleEl.focus(); showToast("Give it a title first"); return; }
+      var dt = state.selectedDate;
+      if (!state.data.agenda[dt]) state.data.agenda[dt] = [];
+      state.data.agenda[dt].push({
+        id: genId(),
+        title: title,
+        category: "custom",
+        libId: null,
+        time: document.getElementById("customTime").value || "",
+        notes: document.getElementById("customNotes").value.trim(),
+        booking: document.getElementById("customBooking").value.trim()
+      });
+      saveData().then(function () {
+        renderDayPanel();
+        closeModal();
+        showToast("Added to " + fullDateLabel(dt));
+      });
+    });
+  }
+
+  /* ---------------- Reset ---------------- */
+  function wireFooter() {
+    var footer = document.createElement("div");
+    footer.className = "footer-note";
+    footer.innerHTML = "<button id=\"resetBtn\">Clear all trip data</button> &nbsp;·&nbsp; clears for both devices when sync is on";
+    document.querySelector(".app").appendChild(footer);
+    document.getElementById("resetBtn").addEventListener("click", function () {
+      if (confirm("Clear every activity from every day? This can't be undone.")) {
+        state.data = { agenda: {} };
+        saveData().then(function () { renderDayPanel(); showToast("Cleared"); });
+      }
+    });
+  }
+
+  /* ---------------- Init ---------------- */
+  function init() {
+    buildLineStrip();
+    wireFooter();
+    dayPanel.innerHTML = '<div class="empty-state">Loading your itinerary…</div>';
+    loadData().then(function () {
+      renderDayPanel();
+      scrollSelectedIntoView();
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
