@@ -1166,7 +1166,8 @@ if (FIREBASE_CONFIGURED) {
     html += '<div class="item-tag ' + tagClass + '"></div>';
     html += '<div class="item-body">';
     html += '<p class="item-title"><span class="item-type-icon' + (isRestaurant ? " restaurant" : "") + '">' + typeIcon + '</span>' + escapeHtml(item.title) + "</p>";
-    if (srcItem && srcItem.km) html += '<p class="item-dist">📍 ' + srcItem.km + ' km away</p>';
+    if (srcItem && srcItem.address) html += '<p class="item-dist">📍 ' + escapeHtml(srcItem.address) + '</p>';
+    else if (srcItem && srcItem.km) html += '<p class="item-dist">📍 ' + srcItem.km + ' km away</p>';
     if (item.notes) html += '<p class="item-notes">' + escapeHtml(item.notes) + "</p>";
     if (item.booking) html += '<span class="item-booking">🎫 ' + escapeHtml(item.booking) + "</span>";
     html += "</div>";
@@ -1289,7 +1290,8 @@ if (FIREBASE_CONFIGURED) {
     html += escapeHtml(a.title) + "</p>";
     if (a.blurb) html += '<p class="lib-item-blurb">' + escapeHtml(a.blurb) + "</p>";
     html += '<div class="lib-item-meta">';
-    if (a.km) html += '<span class="dist-badge">📍 ' + a.km + ' km away</span>';
+    if (a.address) html += '<span class="dist-badge">📍 ' + escapeHtml(a.address) + '</span>';
+    else if (a.km) html += '<span class="dist-badge">📍 ' + a.km + ' km away</span>';
     if (added) html += '<span class="lib-added-badge">✓ Already on this day</span>';
     html += '</div></div>';
     html += '<div class="lib-item-actions">';
@@ -1359,6 +1361,8 @@ if (FIREBASE_CONFIGURED) {
     html += '</div></div></div>';
     html += '<div><label class="field-label" for="newLibTitle">Name</label>';
     html += '<input type="text" id="newLibTitle" placeholder="e.g. Café Einstein" /></div>';
+    html += '<div style="margin-top:8px;"><label class="field-label" for="newLibAddress">Address (optional)</label>';
+    html += '<input type="text" id="newLibAddress" placeholder="e.g. Kurfürstendamm 193, 10707 Berlin" /></div>';
     html += '<div style="margin-top:8px;"><label class="field-label" for="newLibBlurb">Notes (optional)</label>';
     html += '<input type="text" id="newLibBlurb" placeholder="e.g. Great brunch, book ahead" /></div>';
     html += '<div id="newLibCatRow" style="margin-top:8px;" class="lib-new-form-row">';
@@ -1444,6 +1448,7 @@ if (FIREBASE_CONFIGURED) {
       var titleEl = document.getElementById("newLibTitle");
       var title = titleEl.value.trim();
       if (!title) { titleEl.focus(); showToast("Give it a name first"); return; }
+      var address = document.getElementById("newLibAddress").value.trim();
       var blurb = document.getElementById("newLibBlurb").value.trim();
       var typeBtn = document.querySelector("#newLibTypeToggle .lib-new-toggle-btn.active");
       var type = typeBtn ? typeBtn.dataset.val : "activity";
@@ -1452,7 +1457,7 @@ if (FIREBASE_CONFIGURED) {
       var stayToggleId = isRestaurant ? "#newLibStayToggleR" : "#newLibStayToggle";
       var stayBtn = document.querySelector(stayToggleId + " .lib-new-toggle-btn.active");
       var stayVal = stayBtn ? parseInt(stayBtn.dataset.val) : 0;
-      var newItem = { id: genId(), type: type, category: cat, stay: stayVal || null, title: title, blurb: blurb };
+      var newItem = { id: genId(), type: type, category: cat, stay: stayVal || null, title: title, address: address, blurb: blurb };
       if (!state.data.customActivities) state.data.customActivities = [];
       state.data.customActivities.push(newItem);
       saveData().then(function () { renderLibraryTab(); showToast("Added to list"); });
