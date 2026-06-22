@@ -575,6 +575,77 @@
     color: var(--muted);
     margin-top: 2px;
   }
+  .lib-item-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: center;
+  }
+  .lib-del-btn {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: none;
+    cursor: pointer;
+    font-size: 10px;
+    color: var(--muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+  }
+  .lib-del-btn:hover { background: #fee; color: var(--danger); border-color: var(--danger); }
+  .lib-add-new-wrap {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+  }
+  .lib-add-new-btn {
+    background: none;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    width: 100%;
+    padding: 10px;
+    font-size: 13px;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-body);
+  }
+  .lib-add-new-btn:hover { border-color: var(--ink); color: var(--ink); }
+  .lib-new-form {
+    margin-top: 12px;
+    padding: 14px;
+    background: var(--cream);
+    border-radius: 12px;
+    border: 1px solid var(--line);
+  }
+  .lib-new-form-row {
+    display: flex;
+    gap: 16px;
+  }
+  .lib-new-form-row > div { flex: 1; }
+  .lib-new-toggle {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+  .lib-new-toggle-btn {
+    padding: 4px 10px;
+    border-radius: 100px;
+    border: 1px solid var(--line);
+    background: var(--surface);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--font-body);
+    color: var(--ink);
+  }
+  .lib-new-toggle-btn.active {
+    background: var(--ink);
+    color: var(--surface);
+    border-color: var(--ink);
+  }
   .lib-added-badge {
     font-size: 10.5px;
     font-family: var(--font-mono);
@@ -781,6 +852,14 @@ if (FIREBASE_CONFIGURED) {
 
   function genId() {
     return "item-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 7);
+  }
+
+  function getCustomLibItems() {
+    return (state.data.customActivities) || [];
+  }
+
+  function getAllLibItems() {
+    return ACTIVITIES.concat(getCustomLibItems());
   }
 
   function getDayItems(dateStr) {
@@ -1132,12 +1211,14 @@ if (FIREBASE_CONFIGURED) {
   function renderLibraryTab() {
     var stay = getStay(state.selectedDate);
     var relevantStay = stay === "transition" ? null : stay;
+    var allLib = getAllLibItems();
     var pool = state.libraryShowAll || !relevantStay
-      ? ACTIVITIES
-      : ACTIVITIES.filter(function (a) { return a.stay === relevantStay; });
+      ? allLib
+      : allLib.filter(function (a) { return !a.stay || a.stay === relevantStay; });
 
     var dayItems = getDayItems(state.selectedDate);
     var addedIds = dayItems.map(function (it) { return it.libId; }).filter(Boolean);
+    var customIds = getCustomLibItems().map(function (a) { return a.id; });
 
     var html = "";
     if (relevantStay) {
@@ -1146,27 +1227,56 @@ if (FIREBASE_CONFIGURED) {
         "</button>";
     }
 
-    ["kids", "family"].forEach(function (cat) {
+    ["kids", "family", "custom"].forEach(function (cat) {
       var group = pool.filter(function (a) { return a.category === cat; });
       if (group.length === 0) return;
-      html += '<div class="lib-group-label">' + (cat === "kids" ? "Kids-only" : "Full family") + "</div>";
+      var label = cat === "kids" ? "Kids-only" : cat === "family" ? "Full family" : "Your additions";
+      html += '<div class="lib-group-label">' + label + "</div>";
       group.forEach(function (a) {
         var added = addedIds.indexOf(a.id) >= 0;
+        var isCustom = customIds.indexOf(a.id) >= 0;
         html += '<div class="lib-item">';
-        html += '<div class="item-tag ' + (cat === "family" ? "family" : "") + '"></div>';
+        html += '<div class="item-tag ' + (cat === "family" ? "family" : cat === "custom" ? "custom" : "") + '"></div>';
         if (a.img) html += '<img class="lib-item-thumb" src="' + a.img + '" alt="" loading="lazy">';
         html += '<div class="lib-item-body">';
         html += '<p class="lib-item-title">' + escapeHtml(a.title) + "</p>";
-        html += '<p class="lib-item-blurb">' + escapeHtml(a.blurb) + "</p>";
+        if (a.blurb) html += '<p class="lib-item-blurb">' + escapeHtml(a.blurb) + "</p>";
         html += '<div class="lib-item-meta">';
         if (a.km) html += '<span class="dist-badge">📍 ' + a.km + ' km away</span>';
         if (added) html += '<span class="lib-added-badge">✓ Already on this day</span>';
         html += '</div>';
         html += "</div>";
+        html += '<div class="lib-item-actions">';
         html += '<button class="lib-add-btn" id="add-' + a.id + '" aria-label="Add ' + escapeAttr(a.title) + '">+</button>';
+        if (isCustom) html += '<button class="lib-del-btn" id="libdel-' + a.id + '" aria-label="Remove from list">✕</button>';
+        html += '</div>';
         html += "</div>";
       });
     });
+
+    html += '<div class="lib-add-new-wrap">';
+    html += '<button class="lib-add-new-btn" id="showAddToListBtn">+ Add activity to list</button>';
+    html += '</div>';
+    html += '<div class="lib-new-form" id="libNewForm" hidden>';
+    html += '<div><label class="field-label" for="newLibTitle">Title</label>';
+    html += '<input type="text" id="newLibTitle" placeholder="e.g. Tipi am Kanzleramt" /></div>';
+    html += '<div style="margin-top:8px;"><label class="field-label" for="newLibBlurb">Description (optional)</label>';
+    html += '<input type="text" id="newLibBlurb" placeholder="What makes it worth doing?" /></div>';
+    html += '<div style="margin-top:8px;" class="lib-new-form-row">';
+    html += '<div><label class="field-label">Category</label>';
+    html += '<div class="lib-new-toggle" id="newLibCatToggle">';
+    html += '<button class="lib-new-toggle-btn active" data-val="family">Family</button>';
+    html += '<button class="lib-new-toggle-btn" data-val="kids">Kids-only</button>';
+    html += '</div></div>';
+    html += '<div><label class="field-label">Stay</label>';
+    html += '<div class="lib-new-toggle" id="newLibStayToggle">';
+    html += '<button class="lib-new-toggle-btn active" data-val="0">Both</button>';
+    html += '<button class="lib-new-toggle-btn" data-val="1">Schöneberg</button>';
+    html += '<button class="lib-new-toggle-btn" data-val="2">Mitte</button>';
+    html += '</div></div>';
+    html += '</div>';
+    html += '<button class="btn" id="saveToListBtn" style="margin-top:12px;">Save to list</button>';
+    html += '</div>';
 
     modalBody.innerHTML = html;
 
@@ -1179,7 +1289,55 @@ if (FIREBASE_CONFIGURED) {
     pool.forEach(function (a) {
       var btn = document.getElementById("add-" + a.id);
       if (btn) btn.addEventListener("click", function () { addLibraryItem(a); });
+      var delBtn = document.getElementById("libdel-" + a.id);
+      if (delBtn) delBtn.addEventListener("click", function () { removeCustomLibItem(a.id); });
     });
+
+    document.getElementById("showAddToListBtn").addEventListener("click", function () {
+      document.getElementById("libNewForm").hidden = false;
+      this.hidden = true;
+      document.getElementById("newLibTitle").focus();
+    });
+
+    ["newLibCatToggle", "newLibStayToggle"].forEach(function (groupId) {
+      var grp = document.getElementById(groupId);
+      if (!grp) return;
+      grp.addEventListener("click", function (e) {
+        var btn = e.target.closest(".lib-new-toggle-btn");
+        if (!btn) return;
+        grp.querySelectorAll(".lib-new-toggle-btn").forEach(function (b) { b.classList.remove("active"); });
+        btn.classList.add("active");
+      });
+    });
+
+    document.getElementById("saveToListBtn").addEventListener("click", function () {
+      var titleEl = document.getElementById("newLibTitle");
+      var title = titleEl.value.trim();
+      if (!title) { titleEl.focus(); showToast("Give it a title first"); return; }
+      var blurb = document.getElementById("newLibBlurb").value.trim();
+      var catBtn = document.querySelector("#newLibCatToggle .lib-new-toggle-btn.active");
+      var stayBtn = document.querySelector("#newLibStayToggle .lib-new-toggle-btn.active");
+      var cat = catBtn ? catBtn.dataset.val : "family";
+      var stayVal = stayBtn ? parseInt(stayBtn.dataset.val) : 0;
+      var newItem = {
+        id: genId(),
+        category: cat,
+        stay: stayVal || null,
+        title: title,
+        blurb: blurb
+      };
+      if (!state.data.customActivities) state.data.customActivities = [];
+      state.data.customActivities.push(newItem);
+      saveData().then(function () {
+        renderLibraryTab();
+        showToast("Added to list");
+      });
+    });
+  }
+
+  function removeCustomLibItem(id) {
+    state.data.customActivities = (state.data.customActivities || []).filter(function (a) { return a.id !== id; });
+    saveData().then(function () { renderLibraryTab(); });
   }
 
   function addLibraryItem(activity) {
