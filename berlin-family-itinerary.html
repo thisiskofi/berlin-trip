@@ -633,6 +633,22 @@
     padding: 0;
   }
   .lib-del-btn:hover { background: #fee; color: var(--danger); border-color: var(--danger); }
+  .lib-restore-note {
+    font-size: 12px;
+    color: var(--muted);
+    margin: 14px 0 0;
+    text-align: center;
+  }
+  .lib-restore-btn {
+    background: none;
+    border: none;
+    color: var(--teal-deep);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 0;
+    font-family: var(--font-body);
+  }
   .lib-add-new-wrap {
     margin-top: 16px;
     padding-top: 14px;
@@ -898,8 +914,15 @@ if (FIREBASE_CONFIGURED) {
     return (state.data.customActivities) || [];
   }
 
+  function getHiddenIds() {
+    return (state.data.hiddenActivities) || [];
+  }
+
   function getAllLibItems() {
-    return ACTIVITIES.map(function (a) { return Object.assign({ type: "activity" }, a); })
+    var hidden = getHiddenIds();
+    return ACTIVITIES
+      .filter(function (a) { return hidden.indexOf(a.id) < 0; })
+      .map(function (a) { return Object.assign({ type: "activity" }, a); })
       .concat(getCustomLibItems());
   }
 
@@ -1254,6 +1277,7 @@ if (FIREBASE_CONFIGURED) {
   function renderLibItem(a, addedIds, customIds) {
     var added = addedIds.indexOf(a.id) >= 0;
     var isCustom = customIds.indexOf(a.id) >= 0;
+    var canDelete = true;
     var isRestaurant = a.type === "restaurant";
     var tagClass = a.category === "family" ? "family" : a.category === "custom" ? "custom" : "";
     var html = '<div class="lib-item">';
@@ -1270,7 +1294,7 @@ if (FIREBASE_CONFIGURED) {
     html += '</div></div>';
     html += '<div class="lib-item-actions">';
     html += '<button class="lib-add-btn" id="add-' + a.id + '" aria-label="Add ' + escapeAttr(a.title) + '">+</button>';
-    if (isCustom) html += '<button class="lib-del-btn" id="libdel-' + a.id + '" aria-label="Remove from list">✕</button>';
+    html += '<button class="lib-del-btn" id="libdel-' + a.id + '" aria-label="Remove from list">✕</button>';
     html += '</div></div>';
     return html;
   }
@@ -1359,7 +1383,18 @@ if (FIREBASE_CONFIGURED) {
     html += '<button class="btn" id="saveToListBtn" style="margin-top:12px;">Save to list</button>';
     html += '</div>';
 
+    var hiddenIds = getHiddenIds();
+    if (hiddenIds.length) {
+      html += '<p class="lib-restore-note">' + hiddenIds.length + ' built-in item' + (hiddenIds.length > 1 ? 's' : '') + ' hidden. <button class="lib-restore-btn" id="restoreHiddenBtn">Restore all</button></p>';
+    }
+
     modalBody.innerHTML = html;
+
+    var restoreBtn = document.getElementById("restoreHiddenBtn");
+    if (restoreBtn) restoreBtn.addEventListener("click", function () {
+      state.data.hiddenActivities = [];
+      saveData().then(function () { renderLibraryTab(); });
+    });
 
     var toggleBtn = document.getElementById("areaToggleBtn");
     if (toggleBtn) toggleBtn.addEventListener("click", function () {
@@ -1371,7 +1406,7 @@ if (FIREBASE_CONFIGURED) {
       var btn = document.getElementById("add-" + a.id);
       if (btn) btn.addEventListener("click", function () { addLibraryItem(a); });
       var delBtn = document.getElementById("libdel-" + a.id);
-      if (delBtn) delBtn.addEventListener("click", function () { removeCustomLibItem(a.id); });
+      if (delBtn) delBtn.addEventListener("click", function () { removeLibItem(a.id); });
     });
 
     document.getElementById("showAddToListBtn").addEventListener("click", function () {
@@ -1424,8 +1459,14 @@ if (FIREBASE_CONFIGURED) {
     });
   }
 
-  function removeCustomLibItem(id) {
-    state.data.customActivities = (state.data.customActivities || []).filter(function (a) { return a.id !== id; });
+  function removeLibItem(id) {
+    var isBuiltIn = ACTIVITIES.some(function (a) { return a.id === id; });
+    if (isBuiltIn) {
+      if (!state.data.hiddenActivities) state.data.hiddenActivities = [];
+      if (state.data.hiddenActivities.indexOf(id) < 0) state.data.hiddenActivities.push(id);
+    } else {
+      state.data.customActivities = (state.data.customActivities || []).filter(function (a) { return a.id !== id; });
+    }
     saveData().then(function () { renderLibraryTab(); });
   }
 
