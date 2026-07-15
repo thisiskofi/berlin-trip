@@ -569,6 +569,14 @@
     font-family: var(--font-mono);
     color: var(--muted);
   }
+  .gmaps-link {
+    display: inline-block;
+    margin-top: 2px;
+    font-size: 11px;
+    font-family: var(--font-mono);
+    color: var(--teal-deep);
+    text-decoration: underline;
+  }
   .item-dist {
     font-size: 11px;
     font-family: var(--font-mono);
@@ -1248,6 +1256,8 @@ if (FIREBASE_CONFIGURED) {
     html += '<p class="item-title"><span class="item-type-icon' + (isRestaurant ? " restaurant" : "") + '">' + typeIcon + '</span>' + escapeHtml(item.title) + "</p>";
     if (srcItem && srcItem.address) html += '<p class="item-dist">📍 ' + escapeHtml(srcItem.address) + '</p>';
     else if (srcItem && srcItem.km) html += '<p class="item-dist">📍 ' + srcItem.km + ' km away</p>';
+    var itemGmaps = (srcItem && srcItem.gmaps) || item.gmaps;
+    if (itemGmaps) html += '<a class="gmaps-link" href="' + escapeAttr(itemGmaps) + '" target="_blank" rel="noopener">See map</a>';
     if (item.notes) html += '<p class="item-notes">' + escapeHtml(item.notes) + "</p>";
     if (item.booking) html += '<span class="item-booking">🎫 ' + escapeHtml(item.booking) + "</span>";
     html += "</div>";
@@ -1262,6 +1272,10 @@ if (FIREBASE_CONFIGURED) {
       html += '<input type="text" id="title-' + item.id + '" value="' + escapeAttr(item.title) + '" ' + (item.category === "custom" ? "" : "disabled") + " /></div>";
       html += '<div><label class="field-label" for="time-' + item.id + '">Time</label>';
       html += '<input type="time" id="time-' + item.id + '" value="' + (item.time || "") + '" /></div>';
+      if (!item.libId) {
+        html += '<div><label class="field-label" for="gmaps-' + item.id + '">Google Maps link</label>';
+        html += '<input type="text" id="gmaps-' + item.id + '" value="' + escapeAttr(item.gmaps || "") + '" placeholder="e.g. https://maps.app.goo.gl/..." /></div>';
+      }
       html += '<div><label class="field-label" for="notes-' + item.id + '">Notes</label>';
       html += '<textarea id="notes-' + item.id + '">' + escapeHtml(item.notes || "") + "</textarea></div>";
       html += '<div><label class="field-label" for="booking-' + item.id + '">Booking confirmation</label>';
@@ -1287,6 +1301,7 @@ if (FIREBASE_CONFIGURED) {
     if (saveBtn) saveBtn.addEventListener("click", function () {
       var titleEl = document.getElementById("title-" + item.id);
       var timeEl = document.getElementById("time-" + item.id);
+      var gmapsEl = document.getElementById("gmaps-" + item.id);
       var notesEl = document.getElementById("notes-" + item.id);
       var bookingEl = document.getElementById("booking-" + item.id);
 
@@ -1295,6 +1310,7 @@ if (FIREBASE_CONFIGURED) {
       if (target) {
         if (target.category === "custom" && titleEl) target.title = titleEl.value.trim() || target.title;
         target.time = timeEl.value || "";
+        if (gmapsEl) target.gmaps = gmapsEl.value.trim();
         target.notes = notesEl.value.trim();
         target.booking = bookingEl.value.trim();
       }
@@ -1371,6 +1387,8 @@ if (FIREBASE_CONFIGURED) {
       html += '<input class="lib-edit-input" data-field="title" value="' + escapeAttr(a.title) + '" /></div>';
       html += '<div style="margin-top:6px;"><label class="field-label">Address</label>';
       html += '<input class="lib-edit-input" data-field="address" value="' + escapeAttr(a.address || '') + '" placeholder="e.g. Unter den Linden 1" /></div>';
+      html += '<div style="margin-top:6px;"><label class="field-label">Google Maps link</label>';
+      html += '<input class="lib-edit-input" data-field="gmaps" value="' + escapeAttr(a.gmaps || '') + '" placeholder="e.g. https://maps.app.goo.gl/..." /></div>';
       html += '<div style="margin-top:6px;"><label class="field-label">Notes</label>';
       html += '<input class="lib-edit-input" data-field="blurb" value="' + escapeAttr(a.blurb || '') + '" placeholder="Optional description" /></div>';
       html += '<div style="margin-top:8px;" class="lib-new-form-row">';
@@ -1401,6 +1419,7 @@ if (FIREBASE_CONFIGURED) {
       html += '<div class="lib-item-meta">';
       if (a.address) html += '<span class="dist-badge">📍 ' + escapeHtml(a.address) + '</span>';
       else if (a.km) html += '<span class="dist-badge">📍 ' + a.km + ' km away</span>';
+      if (a.gmaps) html += '<a class="gmaps-link" href="' + escapeAttr(a.gmaps) + '" target="_blank" rel="noopener">See map</a>';
       if (added) html += '<span class="lib-added-badge">✓ Already on this day</span>';
       html += '</div></div>';
     }
@@ -1476,6 +1495,8 @@ if (FIREBASE_CONFIGURED) {
     html += '<input type="text" id="newLibTitle" placeholder="e.g. Café Einstein" /></div>';
     html += '<div style="margin-top:8px;"><label class="field-label" for="newLibAddress">Address (optional)</label>';
     html += '<input type="text" id="newLibAddress" placeholder="e.g. Kurfürstendamm 193, 10707 Berlin" /></div>';
+    html += '<div style="margin-top:8px;"><label class="field-label" for="newLibGmaps">Google Maps link (optional)</label>';
+    html += '<input type="text" id="newLibGmaps" placeholder="e.g. https://maps.app.goo.gl/..." /></div>';
     html += '<div style="margin-top:8px;"><label class="field-label" for="newLibBlurb">Notes (optional)</label>';
     html += '<input type="text" id="newLibBlurb" placeholder="e.g. Great brunch, book ahead" /></div>';
     html += '<div id="newLibCatRow" style="margin-top:8px;" class="lib-new-form-row">';
@@ -1610,6 +1631,7 @@ if (FIREBASE_CONFIGURED) {
       var title = titleEl.value.trim();
       if (!title) { titleEl.focus(); showToast("Give it a name first"); return; }
       var address = document.getElementById("newLibAddress").value.trim();
+      var gmaps = document.getElementById("newLibGmaps").value.trim();
       var blurb = document.getElementById("newLibBlurb").value.trim();
       var typeBtn = document.querySelector("#newLibTypeToggle .lib-new-toggle-btn.active");
       var type = typeBtn ? typeBtn.dataset.val : "activity";
@@ -1618,7 +1640,7 @@ if (FIREBASE_CONFIGURED) {
       var stayToggleId = isRestaurant ? "#newLibStayToggleR" : "#newLibStayToggle";
       var stayBtn = document.querySelector(stayToggleId + " .lib-new-toggle-btn.active");
       var stayVal = stayBtn ? parseInt(stayBtn.dataset.val) : 0;
-      var newItem = { id: genId(), type: type, category: cat, stay: stayVal || null, title: title, address: address, blurb: blurb };
+      var newItem = { id: genId(), type: type, category: cat, stay: stayVal || null, title: title, address: address, gmaps: gmaps, blurb: blurb };
       if (!state.data.customActivities) state.data.customActivities = [];
       state.data.customActivities.push(newItem);
       saveData().then(function () { renderLibraryTab(); showToast("Added to list"); });
@@ -1661,6 +1683,8 @@ if (FIREBASE_CONFIGURED) {
     html += '<input type="text" id="customTitle" placeholder="e.g. Dinner at Curry 36" /></div>';
     html += '<div style="margin-top:10px;"><label class="field-label" for="customTime">Time</label>';
     html += '<input type="time" id="customTime" /></div>';
+    html += '<div style="margin-top:10px;"><label class="field-label" for="customGmaps">Google Maps link</label>';
+    html += '<input type="text" id="customGmaps" placeholder="e.g. https://maps.app.goo.gl/..." /></div>';
     html += '<div style="margin-top:10px;"><label class="field-label" for="customNotes">Notes</label>';
     html += '<textarea id="customNotes" placeholder="Anything worth remembering"></textarea></div>';
     html += '<div style="margin-top:10px;"><label class="field-label" for="customBooking">Booking confirmation</label>';
@@ -1681,6 +1705,7 @@ if (FIREBASE_CONFIGURED) {
         category: "custom",
         libId: null,
         time: document.getElementById("customTime").value || "",
+        gmaps: document.getElementById("customGmaps").value.trim(),
         notes: document.getElementById("customNotes").value.trim(),
         booking: document.getElementById("customBooking").value.trim()
       });
