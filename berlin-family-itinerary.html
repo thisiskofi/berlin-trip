@@ -1389,6 +1389,8 @@ if (FIREBASE_CONFIGURED) {
       html += '<input class="lib-edit-input" data-field="address" value="' + escapeAttr(a.address || '') + '" placeholder="e.g. Unter den Linden 1" /></div>';
       html += '<div style="margin-top:6px;"><label class="field-label">Google Maps link</label>';
       html += '<input class="lib-edit-input" data-field="gmaps" value="' + escapeAttr(a.gmaps || '') + '" placeholder="e.g. https://maps.app.goo.gl/..." /></div>';
+      html += '<div style="margin-top:6px;"><label class="field-label">Image URL</label>';
+      html += '<input class="lib-edit-input" data-field="img" value="' + escapeAttr(a.img || '') + '" placeholder="e.g. https://example.com/photo.jpg" /></div>';
       html += '<div style="margin-top:6px;"><label class="field-label">Notes</label>';
       html += '<input class="lib-edit-input" data-field="blurb" value="' + escapeAttr(a.blurb || '') + '" placeholder="Optional description" /></div>';
       html += '<div style="margin-top:8px;" class="lib-new-form-row">';
@@ -1497,6 +1499,8 @@ if (FIREBASE_CONFIGURED) {
     html += '<input type="text" id="newLibAddress" placeholder="e.g. Kurfürstendamm 193, 10707 Berlin" /></div>';
     html += '<div style="margin-top:8px;"><label class="field-label" for="newLibGmaps">Google Maps link (optional)</label>';
     html += '<input type="text" id="newLibGmaps" placeholder="e.g. https://maps.app.goo.gl/..." /></div>';
+    html += '<div style="margin-top:8px;"><label class="field-label" for="newLibImg">Image URL (optional)</label>';
+    html += '<input type="text" id="newLibImg" placeholder="e.g. https://example.com/photo.jpg" /></div>';
     html += '<div style="margin-top:8px;"><label class="field-label" for="newLibBlurb">Notes (optional)</label>';
     html += '<input type="text" id="newLibBlurb" placeholder="e.g. Great brunch, book ahead" /></div>';
     html += '<div id="newLibCatRow" style="margin-top:8px;" class="lib-new-form-row">';
@@ -1632,6 +1636,7 @@ if (FIREBASE_CONFIGURED) {
       if (!title) { titleEl.focus(); showToast("Give it a name first"); return; }
       var address = document.getElementById("newLibAddress").value.trim();
       var gmaps = document.getElementById("newLibGmaps").value.trim();
+      var img = document.getElementById("newLibImg").value.trim();
       var blurb = document.getElementById("newLibBlurb").value.trim();
       var typeBtn = document.querySelector("#newLibTypeToggle .lib-new-toggle-btn.active");
       var type = typeBtn ? typeBtn.dataset.val : "activity";
@@ -1640,7 +1645,7 @@ if (FIREBASE_CONFIGURED) {
       var stayToggleId = isRestaurant ? "#newLibStayToggleR" : "#newLibStayToggle";
       var stayBtn = document.querySelector(stayToggleId + " .lib-new-toggle-btn.active");
       var stayVal = stayBtn ? parseInt(stayBtn.dataset.val) : 0;
-      var newItem = { id: genId(), type: type, category: cat, stay: stayVal || null, title: title, address: address, gmaps: gmaps, blurb: blurb };
+      var newItem = { id: genId(), type: type, category: cat, stay: stayVal || null, title: title, address: address, gmaps: gmaps, img: img, blurb: blurb };
       if (!state.data.customActivities) state.data.customActivities = [];
       state.data.customActivities.push(newItem);
       saveData().then(function () { renderLibraryTab(); showToast("Added to list"); });
